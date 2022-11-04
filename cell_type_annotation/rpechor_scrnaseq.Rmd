@@ -1,0 +1,115 @@
+---
+title: "DRAFT_rpechor_gex_cell_type_annotation"
+author: "Drew Voigt, Nate Mullin"
+date: "11/04/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library("Seurat")
+library(stringr)
+library(tidyverse)
+```
+
+This object was run with the following filters:
+nFeatures > 500
+nFeatures < 7000
+mito.genes < 65
+ribo.genes < 40
+vst with 2000 features
+30 dimensions were used for UMAP/clustering
+
+see: ~/LSS/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/rpecho_cca_11012022 for details
+
+Samples include 21-016 (MELAS), 20-034 (control), as well as two individuals previously sequenced in Voigt et al., PNAS 2019 (PMID:31712411).
+
+Load in data (unannotated Seurat object of integrated retina samples) and visualize
+```{r}
+load("~/LSS/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/rpecho_cca_11012022/final_object.RData")
+DimPlot(IVR_object.combined, label = T, group.by = "orig.ident")
+```
+
+
+```{r}
+DefaultAssay(IVR_object.combined) <- "RNA"
+FeaturePlot(IVR_object.combined, features = "VWF")
+FeaturePlot(IVR_object.combined, features = "CA4")
+FeaturePlot(IVR_object.combined, features = "MMRN1")
+FeaturePlot(IVR_object.combined, features = "SEMA3G")
+
+FeaturePlot(IVR_object.combined, features = "RPE65")
+FeaturePlot(IVR_object.combined, features = "MLANA")
+FeaturePlot(IVR_object.combined, features = "CD79A")
+FeaturePlot(IVR_object.combined, features = "CD2")
+FeaturePlot(IVR_object.combined, features = "AIF1")
+FeaturePlot(IVR_object.combined, features = "KIT")
+FeaturePlot(IVR_object.combined, features = "PLP1")
+FeaturePlot(IVR_object.combined, features = "ACTA2")
+FeaturePlot(IVR_object.combined, features = "MYH11")
+FeaturePlot(IVR_object.combined, features = "GGT5")
+
+FeaturePlot(IVR_object.combined, features = "IGF2")
+FeaturePlot(IVR_object.combined, features = "APOD")
+
+levels(IVR_object.combined)
+
+ordered_celltypes <- c("Fibroblast"  ,"Fibroblast" , "T_Cell" , "Melanocyte" , "Endothelial" , "T_Cell",
+                       "Pericyte_SMC" , "Fibroblast" , "Schwann" , "Macrophage"  ,"B_Cell",
+                       "RPE", "Mast" ,"Macrophage", "Macrophage", "B_Cell")
+
+celltype <- plyr::mapvalues(IVR_object.combined[["seurat_clusters"]][["seurat_clusters"]],
+                            from = seq(from = 0, to = 15),
+                            to = ordered_celltypes)
+
+IVR_object.combined[["celltype"]] <- celltype
+Idents(IVR_object.combined) <- "celltype"
+```
+
+Add important metadata (donor ID, region, etc.)
+```{r}
+region <- ifelse(
+  str_detect(
+    IVR_object.combined[["orig.ident"]][["orig.ident"]], "mac"
+    ), "macula", "peripheral")
+
+disease <- ifelse(
+  str_detect(
+    IVR_object.combined[["orig.ident"]][["orig.ident"]], "20_16"
+    ), "MELAS", "control")
+
+donor <- ifelse(
+  str_detect(
+    IVR_object.combined[["orig.ident"]][["orig.ident"]], "18_118"
+    ), "18_118",  ifelse(
+  str_detect(
+    IVR_object.combined[["orig.ident"]][["orig.ident"]], "18_119"
+    ), "18_119",  ifelse(
+  str_detect(
+    IVR_object.combined[["orig.ident"]][["orig.ident"]], "20_34"
+    ), "20_034", "21_016")))
+
+
+IVR_object.combined[["region"]] <- region
+IVR_object.combined[["disease"]] <- disease
+IVR_object.combined[["donor"]] <- donor
+
+pdf(file = "rna_rpechor_annotations_with_pnas_controls.pdf", width = 7, height = 5)
+DimPlot(IVR_object.combined, label = F) 
+dev.off()
+
+pdf(file = "rna_rpechor_group_donor_with_pnas_controls.pdf", width = 20, height = 5)
+DimPlot(IVR_object.combined, label = F, split.by = "donor") 
+dev.off()
+```
+
+Save annotated object for downstream use.
+```{r}
+save(IVR_object.combined, file = "~/LSS/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/celltype_annotation_of_rna/rpechor_pnas_controls_annotated_11012022.RData")
+```
+
+```{r}
+sessionInfo()
+```
+
