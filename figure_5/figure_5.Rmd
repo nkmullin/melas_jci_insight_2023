@@ -1,1 +1,103 @@
-xxx
+---
+title: "dge_plotting_11042022"
+author: "Nate Mullin"
+date: "11/04/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(Signac)
+library(Seurat)
+library(patchwork)
+library(tidyverse)
+library(ggpubr)
+library(patchwork)
+library(EnhancedVolcano)
+library(RColorBrewer)
+library(readr)
+set.seed(1234)
+```
+
+```{r}
+melas_vs_control_Cone <- read_csv("retina_11012022/melas_vs_control_Cone.csv")
+
+obj <- melas_vs_control_Cone
+
+dpct_fc_plot <- ggplot(obj, aes(delta.pct, avg_log2FC)) + 
+  geom_point(color = "#878787", alpha=I(0.2)) +
+  geom_point(data=subset(obj, delta.pct > 0.25 & avg_log2FC > 1),  # DELTA PCT > 0.25 AND logFC>1
+             aes(delta.pct,avg_log2FC,label = gene), color = "#b2182b") + 
+  geom_point(data=subset(obj, delta.pct < -0.25 & avg_log2FC < -1),
+             aes(delta.pct,avg_log2FC,label = gene), color  = "#2166ac") + 
+  geom_text_repel(data=subset(obj, abs(delta.pct) > 0.25 & abs(avg_log2FC) > 1), max.overlaps = 20,
+                  aes(delta.pct,avg_log2FC,label = gene)) + 
+  labs(x = "∆ Percent Expressed", y = "Log2 Fold Change", title = "Cone") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+pdf(file = "cone_gex_melas_ctl_dpct_fc.pdf", width = 5, height = 5)
+dpct_fc_plot
+dev.off()
+
+obj <- read_csv("rpechor_11012022/melas_vs_control_Endothelial.csv")
+
+dpct_fc_plot <- ggplot(obj, aes(delta.pct, avg_log2FC)) + 
+  geom_point(color = "#878787", alpha=I(0.2)) +
+  geom_point(data=subset(obj, delta.pct > 0.25 & avg_log2FC > 1),  # DELTA PCT > 0.25 AND logFC>1
+             aes(delta.pct,avg_log2FC,label = gene), color = "#b2182b") + 
+  geom_point(data=subset(obj, delta.pct < -0.25 & avg_log2FC < -1),
+             aes(delta.pct,avg_log2FC,label = gene), color  = "#2166ac") + 
+  geom_text_repel(data=subset(obj, abs(delta.pct) > 0.25 & abs(avg_log2FC) > 1), max.overlaps = 20,
+                  aes(delta.pct,avg_log2FC,label = gene)) + 
+  labs(x = "∆ Percent Expressed", y = "Log2 Fold Change", title = "CEC") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+pdf(file = "cec_gex_melas_ctl_dpct_fc.pdf", width = 5, height = 5)
+dpct_fc_plot
+dev.off()
+
+obj <- read_csv("rpechor_11012022/melas_vs_control_Fibroblast.csv")
+
+dpct_fc_plot <- ggplot(obj, aes(delta.pct, avg_log2FC)) + 
+  geom_point(color = "#878787", alpha=I(0.2)) +
+  geom_point(data=subset(obj, delta.pct > 0.25 & avg_log2FC > 1),  # DELTA PCT > 0.25 AND logFC>1
+             aes(delta.pct,avg_log2FC,label = gene), color = "#b2182b") + 
+  geom_point(data=subset(obj, delta.pct < -0.25 & avg_log2FC < -1),
+             aes(delta.pct,avg_log2FC,label = gene), color  = "#2166ac") + 
+  geom_text_repel(data=subset(obj, abs(delta.pct) > 0.25 & abs(avg_log2FC) > 1), max.overlaps = 20,
+                  aes(delta.pct,avg_log2FC,label = gene)) + 
+  labs(x = "∆ Percent Expressed", y = "Log2 Fold Change", title = "Fibroblast") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+pdf(file = "fibroblast_gex_melas_ctl_dpct_fc.pdf", width = 5, height = 5)
+dpct_fc_plot
+dev.off()
+
+obj <- read_csv("rpechor_11012022/melas_vs_control_T_Cell.csv")
+
+dpct_fc_plot <- ggplot(obj, aes(delta.pct, avg_log2FC)) + 
+  geom_point(color = "#878787", alpha=I(0.2)) +
+  geom_point(data=subset(obj, delta.pct > 0.25 & avg_log2FC > 1),  # DELTA PCT > 0.25 AND logFC>1
+             aes(delta.pct,avg_log2FC,label = gene), color = "#b2182b") + 
+  geom_point(data=subset(obj, delta.pct < -0.25 & avg_log2FC < -1),
+             aes(delta.pct,avg_log2FC,label = gene), color  = "#2166ac") + 
+  geom_text_repel(data=subset(obj, abs(delta.pct) > 0.25 & abs(avg_log2FC) > 1), max.overlaps = 20,
+                  aes(delta.pct,avg_log2FC,label = gene)) + 
+  labs(x = "∆ Percent Expressed", y = "Log2 Fold Change", title = "T Cell") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+pdf(file = "tcell_gex_melas_ctl_dpct_fc.pdf", width = 5, height = 5)
+dpct_fc_plot
+dev.off()
+
+```
+
+
+```{r}
+sessionInfo()
+```
+
