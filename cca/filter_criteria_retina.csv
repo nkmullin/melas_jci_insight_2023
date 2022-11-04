@@ -1,0 +1,2 @@
+lower_cutoff,higher_cutoff,mito_cutoff,ribo_cutoff,selection_method,variable_genes
+500,7000,40,20,vst,2000

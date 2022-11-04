@@ -1,0 +1,13 @@
+filepath,libraryID
+/Shared/IVR/apvoigt/experiments/sc-rna-seq/MELAS_mito_remap/data/S1_20_16_mac_retina/outs/filtered_feature_bc_matrix,S1_20_16_mac_retina
+/Shared/IVR/apvoigt/experiments/sc-rna-seq/MELAS_mito_remap/data/S2_20_16_per_retina/outs/filtered_feature_bc_matrix,S2_20_16_per_retina
+/Shared/IVR/apvoigt/experiments/sc-rna-seq/MELAS_mito_remap/data/S5_20_34_mac_retina/outs/filtered_feature_bc_matrix,S5_20_34_mac_retina
+/Shared/IVR/apvoigt/experiments/sc-rna-seq/MELAS_mito_remap/data/S6_20_34_per_retina/outs/filtered_feature_bc_matrix,S6_20_34_per_retina
+/Shared/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/bullseye_retina/Fovea_donor_1/outs/filtered_feature_bc_matrix,Fovea_donor_1
+/Shared/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/bullseye_retina/Fovea_donor_2/outs/filtered_feature_bc_matrix,Fovea_donor_2
+/Shared/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/bullseye_retina/Fovea_donor_3/outs/filtered_feature_bc_matrix,Fovea_donor_3
+/Shared/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/bullseye_retina/Fovea_donor_4/outs/filtered_feature_bc_matrix,Fovea_donor_4
+/Shared/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/bullseye_retina/Perifovea_donor_1/outs/filtered_feature_bc_matrix,Perifovea_donor_1
+/Shared/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/bullseye_retina/Perifovea_donor_2/outs/filtered_feature_bc_matrix,Perifovea_donor_2
+/Shared/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/bullseye_retina/Perifovea_donor_3/outs/filtered_feature_bc_matrix,Perifovea_donor_3
+/Shared/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/bullseye_retina/Perifovea_donor_4/outs/filtered_feature_bc_matrix,Perifovea_donor_4

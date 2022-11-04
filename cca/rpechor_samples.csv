@@ -1,0 +1,9 @@
+filepath,libraryID
+/Shared/IVR/apvoigt/experiments/sc-rna-seq/MELAS_mito_remap/data/S3_20_16_mac_rpechor/outs/filtered_feature_bc_matrix,S3_20_16_mac_rpechor
+/Shared/IVR/apvoigt/experiments/sc-rna-seq/MELAS_mito_remap/data/S4_20_16_per_rpechor/outs/filtered_feature_bc_matrix,S4_20_16_per_rpechor
+/Shared/IVR/apvoigt/experiments/sc-rna-seq/MELAS_mito_remap/data/S7_20_34_mac_rpechor/outs/filtered_feature_bc_matrix,S7_20_34_mac_rpechor
+/Shared/IVR/apvoigt/experiments/sc-rna-seq/MELAS_mito_remap/data/S8_20_34_per_rpechor/outs/filtered_feature_bc_matrix,S8_20_34_per_rpechor
+/Shared/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/unselected_rpe_chor/macula_D1_RPECHO_ID_18_118/outs/filtered_feature_bc_matrix,macula_D1_RPECHO_ID_18_118
+/Shared/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/unselected_rpe_chor/macula_D2_RPECHO_ID_18_119/outs/filtered_feature_bc_matrix,macula_D2_RPECHO_ID_18_119
+/Shared/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/unselected_rpe_chor/peripheral_D1_RPECHO_ID_18_118/outs/filtered_feature_bc_matrix,peripheral_D1_RPECHO_ID_18_118
+/Shared/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/unselected_rpe_chor/peripheral_D2_RPECHO_ID_18_119/outs/filtered_feature_bc_matrix,peripheral_D2_RPECHO_ID_18_119
