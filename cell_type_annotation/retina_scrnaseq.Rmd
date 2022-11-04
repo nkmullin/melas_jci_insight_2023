@@ -1,0 +1,214 @@
+---
+title: "DRAFT_retina_gex_cell_type_annotation"
+author: "Drew Voigt, Nate Mullin"
+date: "11/04/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library("Seurat")
+library(stringr)
+library(tidyverse)
+```
+
+This object was run with the following filters:
+nFeatures > 500
+nFeatures < 7000
+mito.genes < 40
+ribo.genes < 20
+vst with 2000 features
+30 dimensions were used for UMAP/clustering
+
+see: ~/LSS/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/retina_cca_11012022 for details
+
+Samples include 21-016 (MELAS), 20-034 (control), as well as four individuals previously sequenced in Voigt et al., HMG 2021 (PMID:34014299).
+  These samples had foveal and perifoveal regions of macula processes seperately.
+
+Load in data (unannotated Seurat object of integrated retina samples) and visualize
+```{r}
+load("~/LSS/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/retina_cca_11012022/final_object.RData")
+DimPlot(IVR_object.combined, label = T)
+```
+
+
+```{r}
+DefaultAssay(IVR_object.combined) <- "RNA"
+
+# look at marker genes
+FeaturePlot(IVR_object.combined, features = "RHO", max.cutoff = "q95") # rod
+FeaturePlot(IVR_object.combined, features = "ARR3", order = T) # cone
+FeaturePlot(IVR_object.combined, features = "PDE6H", order = T) # cone
+FeaturePlot(IVR_object.combined, features = "THY1") # RGC
+FeaturePlot(IVR_object.combined, features = "NRN1") # RGC
+FeaturePlot(IVR_object.combined, features = "VWF") # EC
+FeaturePlot(IVR_object.combined, features = "ACTA2", order = T) # Pericyte_SMC
+FeaturePlot(IVR_object.combined, features = "NRXN2") # Horizontal?
+FeaturePlot(IVR_object.combined, features = "GFAP") # Astrocyte
+FeaturePlot(IVR_object.combined, features = "RLBP1")  # Muller
+FeaturePlot(IVR_object.combined, features = "C1QA")  # microglia
+FeaturePlot(IVR_object.combined, features = "APOE")  # amacrine
+
+## bipolar subclusters from Shekhar et al. PMID: 27565351
+FeaturePlot(IVR_object.combined, features = "GRIK1")
+FeaturePlot(IVR_object.combined, features = "PRKCA")
+FeaturePlot(IVR_object.combined, features = "GRM6")
+FeaturePlot(IVR_object.combined, features = "ONECUT2")
+FeaturePlot(IVR_object.combined, features = "ERBB4") ## BC3A
+FeaturePlot(IVR_object.combined, features = c("SOX6", "NFIA"), order = T) ## BC5A (cone on)
+FeaturePlot(IVR_object.combined, features = c("NETO1", "VSX1", "TACR3"), order = T) ## BC2 (cone off)
+FeaturePlot(IVR_object.combined, features = c("TACR3",  "LHX3", "ZFHX4", "NTNG1"), order = T) ## BC1B (cone off)
+FeaturePlot(IVR_object.combined, features = c("KCNIP4"), order = T) ## BC4 (cone off)
+
+levels(IVR_object.combined)
+
+ordered_celltypes <- c("Rod", "Muller",  "Rod",  "Cone_OFF_BC2",  "Rod_BC",  "Cone_ON_BC",
+                       "Muller" , "Rod",  "Cone",  "Rod",  "RGC",
+                       "Cone_OFF_BC4" ,"Amacrine" ,"Cone_ON_BC5A", "Muller", "RGC",
+                       "Cone_OFF_BC1B", "Horizontal", "Endothelial_Microglia" ,
+                       "Cone_OFF_BC3A", "Astrocyte" ,
+                       "Pericyte_SMC" ,"Muller", "Amacrine")
+
+celltype <- plyr::mapvalues(IVR_object.combined[["seurat_clusters"]][["seurat_clusters"]],
+                            from = seq(from = 0, to = 23),
+                            to = ordered_celltypes)
+
+IVR_object.combined[["celltype"]] <- celltype
+Idents(IVR_object.combined) <- "celltype"
+DimPlot(IVR_object.combined, label = T, label.size = 4.5)
+
+## Split the microglia/EC cluster
+IVR_object.combined <- FindSubCluster(IVR_object.combined, "Endothelial_Microglia", graph.name = "integrated_nn",
+                                      subcluster.name = "sub.cluster", resolution = 0.1, algorithm = 1)
+
+Idents(IVR_object.combined) <- "sub.cluster"
+DimPlot(IVR_object.combined, label = T, label.size = 2)
+FeaturePlot(IVR_object.combined, features = "C1QA")  # microglia
+FeaturePlot(IVR_object.combined, features = "VWF") # EC
+
+# RENAME CLUSTERS
+
+levels(IVR_object.combined)
+
+ordered_celltypes <- c("Rod"                     , "Cone_OFF_BC2"   ,        
+"Cone"                    , "Muller"         ,        
+"Rod_BC"                  , "Astrocyte"      ,        
+"Cone_ON_BC"              , "Amacrine"       ,        
+"Cone_ON_BC5A"            , "Cone_OFF_BC4"   ,        
+"Cone_OFF_BC1B"           , "Cone_OFF_BC3A"  ,        
+"RGC"                     , "Horizontal"     ,        
+"Endothelial" , "Pericyte_SMC"   ,        
+"Microglia" , "Endothelial")
+
+names(ordered_celltypes) <- levels(IVR_object.combined)
+IVR_object.combined <- RenameIdents(IVR_object.combined, ordered_celltypes)
+DimPlot(IVR_object.combined, label = T, label.size = 4.5) + NoLegend()
+
+## Split the Cone cluster
+IVR_object.combined <- FindSubCluster(IVR_object.combined, "Cone", graph.name = "integrated_nn",
+                                      subcluster.name = "sub.cluster", resolution = 0.1, algorithm = 1)
+
+Idents(IVR_object.combined) <- "sub.cluster"
+DimPlot(IVR_object.combined, label = T, label.size = 2)
+FeaturePlot(IVR_object.combined, features = "ARR3")  # Cone
+FeaturePlot(IVR_object.combined, features = "PDE6B") # Rod
+
+# RENAME CLUSTERS
+
+levels(IVR_object.combined)
+
+ordered_celltypes <- c("Rod"                     , "Cone_OFF_BC2"   ,        
+"Cone"                    , "Muller"         ,        
+"Rod_BC"                  , "Astrocyte"      ,        
+"Cone_ON_BC"              , "Amacrine"       ,        
+"Cone_ON_BC5A"            , "Cone_OFF_BC4"   ,        
+"Cone_OFF_BC1B"           , "Cone_OFF_BC3A"  ,        
+"RGC"                     , "Horizontal"     ,        
+"Endothelial" , "Rod", "Pericyte_SMC"   ,        
+"Microglia" , "Endothelial")
+
+names(ordered_celltypes) <- levels(IVR_object.combined)
+IVR_object.combined <- RenameIdents(IVR_object.combined, ordered_celltypes)
+IVR_object.combined$final_celltype <- IVR_object.combined@active.ident
+Idents(IVR_object.combined) <- "final_celltype"
+
+### MUST RENAME FINAL IDENTS AS "celltype" FOR LABEL TRANSFER SCRIPT
+IVR_object.combined$celltype <- IVR_object.combined$final_celltype
+DimPlot(IVR_object.combined, label = T, label.size = 4.5, group.by = "celltype") + NoLegend()
+
+VlnPlot(IVR_object.combined, features = "nCount_RNA")
+VlnPlot(IVR_object.combined, features = "nFeature_RNA")
+VlnPlot(IVR_object.combined, features = "mito.genes")
+VlnPlot(IVR_object.combined, features = "ribo.genes")
+```
+
+
+Add important metadata (donor, region, etc.)
+```{r}
+region <- ifelse(
+  str_detect(
+    IVR_object.combined[["orig.ident"]][["orig.ident"]], "per"
+    ), "peripheral", "macula")
+
+subregion <- ifelse(
+  str_detect(
+    IVR_object.combined[["orig.ident"]][["orig.ident"]], "Fovea_"
+    ), "fovea", ifelse(
+  str_detect(
+    IVR_object.combined[["orig.ident"]][["orig.ident"]], "Perifovea_"
+    ), "perifovea", ifelse(
+  str_detect(
+    IVR_object.combined[["orig.ident"]][["orig.ident"]], "mac"
+    ), "macula", "peripheral")))
+
+disease <- ifelse(
+  str_detect(
+    IVR_object.combined[["orig.ident"]][["orig.ident"]], "20_16"
+    ), "MELAS", "control")
+
+donor <- ifelse(
+  str_detect(
+    IVR_object.combined[["orig.ident"]][["orig.ident"]], "20_16"
+    ), "21_016", ifelse(
+  str_detect(
+    IVR_object.combined[["orig.ident"]][["orig.ident"]], "donor_1"
+    ), "20_009", ifelse(
+  str_detect(
+    IVR_object.combined[["orig.ident"]][["orig.ident"]], "donor_2"
+    ), "20_014", ifelse(
+  str_detect(
+    IVR_object.combined[["orig.ident"]][["orig.ident"]], "donor_3"
+    ), "20_031", ifelse(
+  str_detect(
+    IVR_object.combined[["orig.ident"]][["orig.ident"]], "donor_4"
+    ), "20_032", "20_034")))))
+
+tissue <- ifelse(
+  str_detect(
+    IVR_object.combined[["orig.ident"]][["orig.ident"]], "retina"
+    ), "retina", "retina")
+
+IVR_object.combined[["region"]] <- region
+IVR_object.combined[["subregion"]] <- subregion
+IVR_object.combined[["disease"]] <- disease
+IVR_object.combined[["donor"]] <- donor
+IVR_object.combined[["tissue"]] <- tissue
+
+pdf(file = "rna_retina_annotations_with_bullseye_controls.pdf", width = 7, height = 5)
+DimPlot(IVR_object.combined, label = F) 
+dev.off()
+
+pdf(file = "rna_retina_group_donor_with_bullseye_controls.pdf", width = 30, height = 5)
+DimPlot(IVR_object.combined, label = F, split.by = "donor") 
+dev.off()
+```
+
+Save annotated object for downstream use.
+```{r}
+save(IVR_object.combined, file = "~/LSS/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/celltype_annotation_of_rna/retina_bullseye_controls_annotated_11012022.RData")
+```
+
+```{r}
+sessionInfo()
+```
