@@ -1,0 +1,195 @@
+---
+title: "cluster_annotation_label_transfer"
+author: "Nate Mullin"
+date: "11/04/2022"
+output: html_document
+editor_options:
+  chunk_output_type: console
+---
+Load required packages
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(Signac)
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(tidyverse)
+library(EnsDb.Hsapiens.v75)
+library(Matrix)
+library(SummarizedExperiment)
+library(ggpubr)
+library(patchwork)
+library(RColorBrewer)
+library(scCustomize)
+set.seed(1234)
+
+# set working directory
+setwd("~/LSS/IVR/nkmullin/experiments/sc-atac-seq/melas_jci_insight_revision/seurat_downstream/qc_annotation_cluster")
+```
+  
+Load data
+```{r}
+load("~/LSS/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/celltype_annotation_of_rna/rpechor_pnas_controls_annotated_11012022.RData")
+rpechor.rna <- IVR_object.combined
+
+load("~/LSS/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/celltype_annotation_of_rna/retina_bullseye_controls_annotated_11012022.RData")
+retina.rna <- IVR_object.combined
+
+load("~/LSS/IVR/nkmullin/experiments/sc-atac-seq/melas_jci_insight_revision/integrated_final_rpecho_with_trans_labels.RData")
+rpechor.atac <- integrated
+
+load("~/LSS/IVR/nkmullin/experiments/sc-atac-seq/melas_jci_insight_revision/integrated_final_retina_with_trans_labels.RData")
+retina.atac <- integrated
+
+rpechor.rna
+retina.rna
+rpechor.atac
+retina.atac
+```
+
+Annotate data based on donor ID, region, disease state, and tissue type (neural retina or RPE/choroid)
+```{r}
+region <- ifelse(
+  str_detect(
+    retina.atac[["dataset"]][["dataset"]], "mac"
+    ), "macula", "peripheral")
+
+donor <- ifelse(
+  str_detect(
+    retina.atac[["dataset"]][["dataset"]], "21_016"
+    ), "21_016",ifelse(
+  str_detect(
+    retina.atac[["dataset"]][["dataset"]], "20_032"
+    ), "20_032", "20_034"))
+
+disease <- ifelse(
+  str_detect(
+    retina.atac[["dataset"]][["dataset"]], "21_016"
+    ), "MELAS", "control")
+
+tissue <- ifelse(
+  str_detect(
+    retina.atac[["dataset"]][["dataset"]], "rpe_chor"
+    ), "rpechor", "retina")
+
+retina.atac[["region"]] <- region
+retina.atac[["donor"]] <- donor
+retina.atac[["disease"]] <- disease
+retina.atac[["tissue"]] <- tissue
+
+region <- ifelse(
+  str_detect(
+    rpechor.atac[["dataset"]][["dataset"]], "mac"
+    ), "macula", "peripheral")
+
+disease <- ifelse(
+  str_detect(
+    rpechor.atac[["dataset"]][["dataset"]], "21_016"
+    ), "MELAS", "control")
+
+donor <- ifelse(
+  str_detect(
+    rpechor.atac[["dataset"]][["dataset"]], "18_118"
+    ), "18_118",  ifelse(
+  str_detect(
+    rpechor.atac[["dataset"]][["dataset"]], "18_119"
+    ), "18_119",  ifelse(
+  str_detect(
+    rpechor.atac[["dataset"]][["dataset"]], "20_034"
+    ), "20_034", "21_016")))
+
+rpechor.atac[["region"]] <- region
+rpechor.atac[["disease"]] <- disease
+rpechor.atac[["donor"]] <- donor
+
+# save annotated objects for future use
+save(retina.atac, file = "retina_trans_labels_annotated_11012022.RData")
+save(rpechor.atac, file = "rpechor_trans_labels_annotated_11012022.RData")
+```
+
+
+Remove cells from mt-scATACseq data with a maximum prediction score (from label transfer) of less than 0.6.
+```{r fig.width=10, fig.height=10}
+retina.atac$celltype <- ifelse(retina.atac$prediction.score.max > 0.6, 
+                                       retina.atac$predicted.id, NA)
+rpechor.atac$celltype <- ifelse(rpechor.atac$prediction.score.max > 0.6,
+                                        rpechor.atac$predicted.id, NA)
+
+retina.atac$celltype <- factor(retina.atac$celltype, levels = levels(retina.rna))
+rpechor.atac$celltype <- factor(rpechor.atac$celltype, levels = levels(rpechor.rna))
+
+retina.atac <- subset(retina.atac, celltype != 'NA')
+rpechor.atac <- subset(rpechor.atac, celltype != 'NA')
+
+save(retina.atac, file = "retina_trans_labels_annotated_na_removed_11012022.RData")
+save(rpechor.atac, file = "rpechor_trans_labels_annotated_na_removed_11012022.RData")
+
+# set color palettes
+retina.cols <-  c(brewer.pal(n = 9, name = "Set1"), brewer.pal(n = 8, name = "Accent"))
+rpechor.cols <- c(brewer.pal(n = 8, name = "Set2"), brewer.pal(n = 8, name = "Dark2"))
+
+# generate UMAP plots for each tissue/modalitiy
+# all donors combined
+retina_rna_plot <- DimPlot(object = retina.rna, group.by = "celltype", label = T, repel = TRUE, shuffle = TRUE, cols = c(brewer.pal(n = 9, name = "Set1"), brewer.pal(n = 8, name = "Accent")))   + ggtitle("Neural Retina (RNA)") + xlab("UMAP 1") + ylab("UMAP 2")  + NoLegend()
+
+rpechor_rna_plot <- DimPlot(object = rpechor.rna, group.by = "celltype", label = T, repel = TRUE, shuffle = TRUE, cols = c(brewer.pal(n = 8, name = "Set2"), brewer.pal(n = 8, name = "Dark2")))  + ggtitle("RPE & Choroid (RNA)") + xlab("UMAP 1") + ylab("UMAP 2")  + NoLegend()
+
+retina_atac_plot <- DimPlot(object = retina.atac, group.by = "celltype", label = T, repel = TRUE, shuffle = TRUE, cols = c(brewer.pal(n = 9, name = "Set1"), brewer.pal(n = 8, name = "Accent")))  + ggtitle("Neural Retina (ATAC)") + xlab("UMAP 1") + ylab("UMAP 2")  + NoLegend()
+
+rpechor_atac_plot <- DimPlot(object = rpechor.atac, group.by = "celltype", label = T, repel = TRUE, shuffle = TRUE, cols = c(brewer.pal(n = 9, name = "Set2"), brewer.pal(n = 8, name = "Dark2")))  + ggtitle("RPE & Choroid (ATAC)") + xlab("UMAP 1") + ylab("UMAP 2")  + NoLegend()
+
+final_dimplot_figure <- ggarrange(retina_rna_plot, 
+                                  rpechor_rna_plot, 
+                                  retina_atac_plot, 
+                                  rpechor_atac_plot,
+                                  labels = c("B", "C", "F", "G"),  font.label = list(size = 25),
+                                  ncol = 2, nrow = 2)
+
+pdf(file = "rna_atac_retina_and_rpechor_dimplots.pdf", width = 10,height = 10)
+final_dimplot_figure
+dev.off()
+```
+
+Generate dot plots of retinal cell type marker genes
+
+Visualize marker genes
+```{r fig.width=15, fig.height=5}
+DefaultAssay(rpechor.rna) <- "RNA"
+DefaultAssay(retina.rna) <- "RNA"
+
+# Define order of appearance of celltypes
+rpechor_levels <- rev(c("RPE", "Mast", "B_Cell", "Schwann", "Pericyte_SMC", "Macrophage", "Endothelial", "Melanocyte", "T_Cell", "Fibroblast"))
+rpechor.rna@meta.data$celltype <- factor(x = rpechor.rna@meta.data$celltype, levels = rpechor_levels)
+
+retina_levels <- rev(c("RGC", "Amacrine", "Rod_BC", "Cone_ON_BC", "Cone_ON_BC5A", "Cone_OFF_BC1B", "Cone_OFF_BC2", "Cone_OFF_BC3A", "Cone_OFF_BC4", "Endothelial", "Pericyte_SMC", "Microglia", "Astrocyte", "Muller", "Horizontal" ,"Cone", "Rod"))
+retina.rna@meta.data$celltype <- factor(x = retina.rna@meta.data$celltype, levels = retina_levels)
+
+# Define genes of interest for each tissue type
+retina.features <- c("THY1","NETO1","ZFHX4","SOX6","ERBB4","KCNIP4","VWF","ACTA2","C1QA",
+                     "GFAP","RLBP1","NRXN2","PDE6H", "PDE6B")
+
+rpechor.features <- c("RPE65","KIT","CD79A","PLP1","ACTA2","AIF1","VWF","MLANA","CD2","APOD")
+
+# Generate dot plots
+vir.retina.dotplot <- DotPlot_scCustom(seurat_object = retina.rna, 
+                          features = retina.features, group.by = "celltype") + RotatedAxis() +
+                          ggtitle("Neural Retina Marker Genes") + theme(plot.title = element_text(hjust = 0.5))
+
+vir.rpechor.dotplot <- DotPlot_scCustom(seurat_object = rpechor.rna, 
+                           features = rpechor.features, group.by = "celltype") + RotatedAxis() +
+                           ggtitle("RPE & Choroid Marker Genes") + theme(plot.title = element_text(hjust = 0.5))
+
+final_vir_dotplot_figure <- ggarrange(vir.retina.dotplot, 
+                                  vir.rpechor.dotplot,
+                                  labels = c( "D", "E"),  font.label = list(size = 25),
+                                  ncol = 2, nrow = 1)
+
+pdf(file = "rna_vir_dotplots.pdf", width = 12, height = 4) 
+final_vir_dotplot_figure
+dev.off()
+```
+
+```{r}
+sessionInfo()
+```
+
