@@ -1,0 +1,10 @@
+variable,value
+object_path,/Shared/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/celltype_annotation_of_rna/rpechor_pnas_controls_annotated_11012022.RData
+subset_logical,TRUE
+subset_set_ident,celltype
+dge_ident,disease
+dge_ident_1,MELAS
+dge_ident_2,control
+save_prefix,melas_vs_control
+save_suffix_ident,celltype
+save_directory,/Shared/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/differential_expression/rpechor_11012022/
