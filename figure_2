@@ -1,0 +1,159 @@
+---
+title: "heteroplasmy_plotting_06182021_nkm"
+author: "Nate Mullin"
+date: "11/04/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(Signac)
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(tidyverse)
+library(EnsDb.Hsapiens.v75)
+library(Matrix)
+library(SummarizedExperiment)
+library(ggpubr)
+library(RColorBrewer)
+```
+
+load mt-scATACseq objects
+```{r}
+load("~/LSS/IVR/nkmullin/experiments/sc-atac-seq/melas_jci_insight_revision/seurat_downstream/qc_annotation_cluster/rpechor_trans_labels_annotated_na_removed_11012022.RData")
+load("~/LSS/IVR/nkmullin/experiments/sc-atac-seq/melas_jci_insight_revision/seurat_downstream/qc_annotation_cluster/retina_trans_labels_annotated_na_removed_11012022.RData")
+```
+
+
+filter cells based on m.3243 coverage and subset to only include MELAS donor
+```{r}
+####################
+###### retina ######
+####################
+
+# subset out MELAS donor sample
+melas.retina.atac <- subset(retina.atac, donor == "21_016")
+
+# create upper bound for m.3243 coverage in MELAS donor only (1.5x IQR beyond 3rd quartile)
+retina.q3 <- quantile(melas.retina.atac$cov3243,0.75)
+retina.q1 <- quantile(melas.retina.atac$cov3243,0.25)
+retina.iqr <- (retina.q3-retina.q1)
+retina.right <- (retina.q3+(1.5*retina.iqr))
+
+# subset on m.3243 coverage (lower bound = 10x coverage over m.3243 locus)
+subset.melas.retina.atac <- subset(subset(melas.retina.atac, cov3243 >= 10), cov3243 <= retina.right)
+
+#########################
+###### RPE/Choroid ######
+#########################
+
+# subset out MELAS donor sample
+melas.rpechor.atac <- subset(rpechor.atac, donor == "21_016")
+
+# create upper bound for m.3243 coverage in MELAS donor only (1.5x IQR beyond 3rd quartile)
+rpechor.q3 <- quantile(melas.rpechor.atac$cov3243,0.75)
+rpechor.q1 <- quantile(melas.rpechor.atac$cov3243,0.25)
+rpechor.iqr <- (rpechor.q3-rpechor.q1)
+rpechor.right <- (rpechor.q3+(1.5*rpechor.iqr))
+
+# subset on m.3243 coverage (lower bound = 10x coverage over m.3243 locus)
+subset.melas.rpechor.atac <- subset(subset(melas.rpechor.atac, cov3243 >= 10), cov3243 <= rpechor.right)
+
+melas.retina.atac # 4,189 cells
+subset.melas.retina.atac # 3,212 cells
+
+melas.rpechor.atac # 1,026 cells
+subset.melas.rpechor.atac # 991 cells
+
+# save resulting objects for future use.
+save(subset.melas.retina.atac, file = "subset.melas.retina.atac.RData")
+save(subset.melas.rpechor.atac, file = "subset.melas.rpechor.atac.RData")
+```
+
+Generate feature plots of Retina and RPE/Choroid samples colored on m.3243A>G allele proportion.
+  Figure 2B,C
+```{r}
+retina_heteroplasmy_plot <- FeaturePlot(
+  object = subset.melas.retina.atac,
+  features = "het3243A_G",
+  order = FALSE,
+  ncol = 1,
+  pt.size = 0.1,
+  label = T, 
+  repel = TRUE) + NoLegend() +
+  scale_colour_gradientn(colours = rev(brewer.pal(n = 8, name = "RdBu"))) + 
+  ggtitle(label = "Neural Retina")
+
+rpechor_heteroplasmy_plot <- FeaturePlot(
+  object = subset.melas.rpechor.atac,
+  features = "het3243A_G",
+  order = FALSE,
+  ncol = 1,
+  pt.size = 0.1,
+  label = T, 
+  repel = TRUE) + NoLegend() +
+  scale_colour_gradientn(colours = rev(brewer.pal(n = 8, name = "RdBu"))) +
+  ggtitle(label = "RPE/Choroid")
+
+pdf(file = "heteroplasmy_feat_plots.pdf", width = 8, height = 4)
+ggarrange(retina_heteroplasmy_plot, rpechor_heteroplasmy_plot,
+          ncol = 2,
+          nrow = 1,
+          labels = c("B","C"),
+          common.legend = TRUE,
+          legend = 'right')
+dev.off()
+```
+
+Generate violin plots of Retina and RPE/Choroid samples colored on m.3243A>G allele proportion.
+  Figure 2D,E
+```{r}
+retina.hetPlot<- VlnPlot(object = subset.melas.retina.atac,
+                  features = "het3243A_G",
+                  pt.size = 0.5, sort = T) + NoLegend() + ylab(label = "proportion m.3243G")+ xlab(label = "") + ggtitle("")
+
+rpechor.hetPlot<- VlnPlot(object = subset.melas.rpechor.atac,
+                  features = "het3243A_G",
+                  pt.size = 0.5, sort = T)  + NoLegend()  + ylab(label = "proportion m.3243G") + xlab(label = "") + ggtitle("")
+
+
+pdf(file = "heteroplasmy_vln_plots.pdf", width = 8,height = 8) 
+ggarrange(retina.hetPlot, rpechor.hetPlot,
+          ncol = 1,
+          nrow = 2,
+          labels = c("D","E"))
+dev.off()
+```
+
+Generate scatter plots showing m.3243 coverage and mtDNA average depth against m.3243G heteroplasmy in MELAS donor cells.
+  Supplemental Figure XA-D
+```{r}
+# plot
+p1 <- ggplot(subset.melas.retina.atac[[]], aes(x = cov3243, y = het3243A_G)) +
+  geom_point(alpha = 1/5, position = "jitter", size = 0.5) +
+  theme_classic() + ggtitle(label = "Neural Retina") + xlab("m.3243 Coverage") + ylab("m.3243A>G Proportion") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+p2 <- ggplot(subset.melas.rpechor.atac[[]], aes(x = cov3243, y = het3243A_G)) +
+  geom_point(alpha = 1/5, position = "jitter", size = 0.5) +
+  theme_classic()+ ggtitle(label = "RPE/Choroid")+ xlab("m.3243 Coverage") + ylab("m.3243A>G Proportion") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+p3 <- ggplot(subset.melas.retina.atac[[]], aes(x = mtDNA_depth, y = het3243A_G)) +
+  geom_point(alpha = 1/5, position = "jitter", size = 0.5) +
+  theme_classic()+ xlab("mtDNA Depth") + ylab("m.3243A>G Proportion")
+
+p4 <- ggplot(subset.melas.rpechor.atac[[]], aes(x = mtDNA_depth, y = het3243A_G)) +
+  geom_point(alpha = 1/5, position = "jitter", size = 0.5) +
+  theme_classic()+ xlab("mtDNA Depth") + ylab("m.3243A>G Proportion") 
+
+tiff(filename = "mtdna_depth_cov_3243.tiff", width = 8, height = 6, units = "in",res = 300)
+ggarrange(p1, p2, p3, p4, nrow = 2, ncol = 2, labels = "AUTO")
+dev.off()
+
+```
+
+```{r}
+sessionInfo()
+```
+
