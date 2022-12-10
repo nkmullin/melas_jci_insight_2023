@@ -11,7 +11,7 @@ library(Seurat)
 library(ggplot2)
 library(patchwork)
 library(tidyverse)
-library(EnsDb.Hsapiens.v75)
+library(EnsDb.Hsapiens.v86)
 library(Matrix)
 library(SummarizedExperiment)
 library(ggpubr)
@@ -20,8 +20,10 @@ library(RColorBrewer)
 
 load mt-scATACseq objects
 ```{r}
-load("~/LSS/IVR/nkmullin/experiments/sc-atac-seq/melas_jci_insight_revision/seurat_downstream/qc_annotation_cluster/rpechor_trans_labels_annotated_na_removed_11012022.RData")
-load("~/LSS/IVR/nkmullin/experiments/sc-atac-seq/melas_jci_insight_revision/seurat_downstream/qc_annotation_cluster/retina_trans_labels_annotated_na_removed_11012022.RData")
+load("~/LSS/IVR/nkmullin/experiments/sc-atac-seq/melas_jci_insight_revision/seurat_downstream/qc_annotation_cluster/rpechor_trans_labels_annotated_na_removed_12072022.RData")
+load("~/LSS/IVR/nkmullin/experiments/sc-atac-seq/melas_jci_insight_revision/seurat_downstream/qc_annotation_cluster/retina_trans_labels_annotated_na_removed_12072022.RData")
+
+setwd("~/LSS/IVR/nkmullin/experiments/sc-atac-seq/melas_jci_insight_revision/seurat_downstream/heteroplasmy")
 ```
 
 
@@ -32,7 +34,7 @@ filter cells based on m.3243 coverage and subset to only include MELAS donor
 ####################
 
 # subset out MELAS donor sample
-melas.retina.atac <- subset(retina.atac, donor == "21_016")
+melas.retina.atac <- subset(retina.atac.no.na, donor == "21_016")
 
 # create upper bound for m.3243 coverage in MELAS donor only (1.5x IQR beyond 3rd quartile)
 retina.q3 <- quantile(melas.retina.atac$cov3243,0.75)
@@ -48,7 +50,7 @@ subset.melas.retina.atac <- subset(subset(melas.retina.atac, cov3243 >= 10), cov
 #########################
 
 # subset out MELAS donor sample
-melas.rpechor.atac <- subset(rpechor.atac, donor == "21_016")
+melas.rpechor.atac <- subset(rpechor.atac.no.na, donor == "21_016")
 
 # create upper bound for m.3243 coverage in MELAS donor only (1.5x IQR beyond 3rd quartile)
 rpechor.q3 <- quantile(melas.rpechor.atac$cov3243,0.75)
@@ -59,11 +61,11 @@ rpechor.right <- (rpechor.q3+(1.5*rpechor.iqr))
 # subset on m.3243 coverage (lower bound = 10x coverage over m.3243 locus)
 subset.melas.rpechor.atac <- subset(subset(melas.rpechor.atac, cov3243 >= 10), cov3243 <= rpechor.right)
 
-melas.retina.atac # 4,189 cells
-subset.melas.retina.atac # 3,212 cells
+melas.retina.atac # 4,622 cells
+subset.melas.retina.atac # 3,516 cells
 
-melas.rpechor.atac # 1,026 cells
-subset.melas.rpechor.atac # 991 cells
+melas.rpechor.atac # 1,135 cells
+subset.melas.rpechor.atac # 1,079 cells
 
 # save resulting objects for future use.
 save(subset.melas.retina.atac, file = "subset.melas.retina.atac.RData")
