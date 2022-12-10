@@ -11,6 +11,7 @@ library(cli, lib.loc = "/Shared/IVR/apvoigt/programs/R-4.1.0/bin/PACKAGES/")
 library(Seurat, lib.loc = "/Shared/IVR/apvoigt/programs/R-4.1.0/bin/PACKAGES/")
 library(Signac, lib.loc = "/Shared/IVR/apvoigt/programs/R-4.1.0/bin/PACKAGES/")
 
+library(GenomeInfoDb, lib.loc = "/Shared/IVR/apvoigt/programs/R-4.1.0/bin/PACKAGES/")
 library(Biobase, lib.loc = "/Shared/IVR/apvoigt/programs/R-4.1.0/bin/PACKAGES/")
 library(AnnotationDbi, lib.loc = "/Shared/IVR/apvoigt/programs/R-4.1.0/bin/PACKAGES/")
 library(AnnotationFilter, lib.loc = "/Shared/IVR/apvoigt/programs/R-4.1.0/bin/PACKAGES/")
@@ -18,7 +19,7 @@ library(GenomicFeatures, lib.loc = "/Shared/IVR/apvoigt/programs/R-4.1.0/bin/PAC
 library(ensembldb, lib.loc = "/Shared/IVR/apvoigt/programs/R-4.1.0/bin/PACKAGES/")
 library(biovizBase, lib.loc = "/Shared/IVR/apvoigt/programs/R-4.1.0/bin/PACKAGES/")
 
-library(EnsDb.Hsapiens.v75, lib.loc = "/Shared/IVR/apvoigt/programs/R-4.1.0/bin/PACKAGES/")
+library(EnsDb.Hsapiens.v86, lib.loc = "/Shared/IVR/apvoigt/programs/R-4.1.0/bin/PACKAGES/")
 library(hdf5r, lib.loc = "/Shared/IVR/apvoigt/programs/R-4.1.0/bin/PACKAGES/")
 library(matrixStats, lib.loc = "/Shared/IVR/apvoigt/programs/R-4.1.0/bin/PACKAGES/")
 library(MatrixGenerics, lib.loc = "/Shared/IVR/apvoigt/programs/R-4.1.0/bin/PACKAGES/")
@@ -342,9 +343,9 @@ if(my_step == 2){
   ##### ADD GENE ACTIVITIES #####
   ###############################
 
-  annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v75)
-  seqlevelsStyle(annotations) <- 'UCSC'
+  annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86)
   genome(annotations) <- "GRCh38"
+  seqlevelsStyle(annotations) <- 'UCSC'
 
   for(i in 1:length(objects_list)){
     print(i)
