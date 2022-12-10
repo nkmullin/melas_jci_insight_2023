@@ -11,6 +11,7 @@
 #$ -m be
 #$ -M nathaniel-mullin@uiowa.edu
 
+module load stack/legacy
 module load readline
 module load bzip2
 LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/Shared/IVR/apvoigt/programs/R-4.1.0/lib64/R/lib:/opt/apps/libiconv/1.15/lib
