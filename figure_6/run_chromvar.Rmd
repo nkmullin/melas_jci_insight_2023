@@ -1,0 +1,132 @@
+---
+title: "differential_motif"
+author: "Nate Mullin"
+date: "12/01/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(Signac)
+library(Seurat)
+library(patchwork)
+library(tidyverse)
+library(EnsDb.Hsapiens.v86)
+library(Matrix)
+library(SummarizedExperiment)
+library(ggpubr)
+library(JASPAR2020)
+library(TFBSTools)
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(patchwork)
+library(EnhancedVolcano)
+set.seed(1234)
+```
+
+
+load data (annotated ATAC data without CHROMVAR or MOTIF assay yet.)
+```{r}
+load("~/LSS/IVR/nkmullin/experiments/sc-atac-seq/melas_jci_insight_revision/seurat_downstream/qc_annotation_cluster/retina_trans_labels_annotated_na_removed_12072022.RData")
+load("~/LSS/IVR/nkmullin/experiments/sc-atac-seq/melas_jci_insight_revision/seurat_downstream/qc_annotation_cluster/rpechor_trans_labels_annotated_na_removed_12072022.RData")
+
+setwd("~/LSS/IVR/nkmullin/experiments/sc-atac-seq/melas_jci_insight_revision/seurat_downstream/motif")
+
+```
+
+#######################################################################################
+############################ run ChromVAR on ATAC datasets ############################
+#######################################################################################
+
+Get the paths to fragment files for objects.
+```{r}
+# get paths for rpe/choroid
+FRAG_PATH1 <- "~/LSS/IVR/nkmullin/experiments/sc-atac-seq/cell_ranger_runs/MELAS_masked_ref/S3_21_016_mac_rpe_chor/outs/fragments.tsv.gz"
+FRAG_PATH2 <- "~/LSS/IVR/nkmullin/experiments/sc-atac-seq/cell_ranger_runs/MELAS_masked_ref/S4_21_016_per_rpe_chor/outs/fragments.tsv.gz"
+FRAG_PATH3 <- "~/LSS/IVR/nkmullin/experiments/sc-atac-seq/cell_ranger_runs/MELAS_masked_ref/S7_20_034_mac_rpe_chor/outs/fragments.tsv.gz"
+FRAG_PATH4 <- "~/LSS/IVR/nkmullin/experiments/sc-atac-seq/cell_ranger_runs/MELAS_masked_ref/S8_20_034_per_rpe_chor/outs/fragments.tsv.gz"
+
+# get paths for retina
+FRAG_PATH5 <- "~/LSS/IVR/nkmullin/experiments/sc-atac-seq/cell_ranger_runs/MELAS_masked_ref/S1_21_016_mac_ret/outs/fragments.tsv.gz"
+FRAG_PATH6 <- "~/LSS/IVR/nkmullin/experiments/sc-atac-seq/cell_ranger_runs/MELAS_masked_ref/S2_21_016_per_ret/outs/fragments.tsv.gz"
+FRAG_PATH7 <- "~/LSS/IVR/nkmullin/experiments/sc-atac-seq/cell_ranger_runs/MELAS_masked_ref/S5_20_034_mac_ret/outs/fragments.tsv.gz"
+FRAG_PATH8 <- "~/LSS/IVR/nkmullin/experiments/sc-atac-seq/cell_ranger_runs/MELAS_masked_ref/S6_20_034_per_ret/outs/fragments.tsv.gz"
+FRAG_PATH9 <- "~/LSS/IVR/nkmullin/experiments/sc-atac-seq/cell_ranger_runs/MELAS_masked_ref/S9_20_032_mac_ret/outs/fragments.tsv.gz"
+
+
+FRAG_PATHS <- c(FRAG_PATH1, FRAG_PATH2, FRAG_PATH3, FRAG_PATH4)
+NEW_FRAG_LIST <- vector(length = 4, mode = "list")
+for(i in 1:4){
+  
+  NEW_FRAG_LIST[[i]] <- UpdatePath(object = Fragments(rpechor.atac.no.na[["ATAC"]])[[i]],
+                                   new.path = FRAG_PATHS[i],
+                                   verbose = TRUE)
+}
+
+NEW_FRAG_LIST[1]
+
+rpechor.atac.no.na[["ATAC"]]
+Fragments(rpechor.atac.no.na[["ATAC"]]) <- NULL
+Fragments(rpechor.atac.no.na[["ATAC"]]) <- NEW_FRAG_LIST
+DefaultAssay(rpechor.atac.no.na) <- 'ATAC'
+
+
+
+FRAG_PATHS <- c(FRAG_PATH5, FRAG_PATH6, FRAG_PATH7, FRAG_PATH8, FRAG_PATH9)
+NEW_FRAG_LIST <- vector(length = 5, mode = "list")
+for(i in 1:5){
+  
+  NEW_FRAG_LIST[[i]] <- UpdatePath(object = Fragments(retina.atac.no.na[["ATAC"]])[[i]],
+                                   new.path = FRAG_PATHS[i],
+                                   verbose = TRUE)
+}
+
+retina.atac.no.na[["ATAC"]]
+Fragments(retina.atac.no.na[["ATAC"]]) <- NULL
+Fragments(retina.atac.no.na[["ATAC"]]) <- NEW_FRAG_LIST
+DefaultAssay(retina.atac.no.na) <- 'ATAC'
+
+```
+
+## Run chromVAR to get per-cell motif accesibility ##
+```{r}
+rpechor.atac.orig <- rpechor.atac.no.na
+
+# get motif feature set (JASPAR Vertebrate Core set)
+pfm <- getMatrixSet(
+  x = JASPAR2020,
+  opts = list(collection = "CORE", tax_group = 'vertebrates', all_versions = FALSE))
+
+# retain only main chromosomes (i.e. peaks in main chromosomes)
+### NOTE: THIS REMOVES ALL OTHER ASSAYS (HETEROPLASMY!)
+main.chroms <- standardChromosomes(BSgenome.Hsapiens.UCSC.hg38)
+
+keep.peaks.rpechor <- as.logical(seqnames(granges(rpechor.atac.no.na)) %in% main.chroms)
+rpechor.atac.no.na <- rpechor.atac.no.na[keep.peaks.rpechor, ]
+
+keep.peaks.retina <- as.logical(seqnames(granges(retina.atac.no.na)) %in% main.chroms)
+retina.atac.no.na <- retina.atac.no.na[keep.peaks.retina, ]
+
+
+# add motif information and save seurat object
+DefaultAssay(rpechor.atac.no.na) <- 'ATAC'
+rpechor.atac.no.na <- AddMotifs(
+  object = rpechor.atac.no.na,
+  genome = BSgenome.Hsapiens.UCSC.hg38,
+  pfm = pfm)
+rpechor.atac.no.na <- RunChromVAR(
+  object = rpechor.atac.no.na,
+  genome = BSgenome.Hsapiens.UCSC.hg38)
+
+save(rpechor.atac.no.na, file="rpechor_trans_labels_annotated_na_removed_chromvar_12072022.RData")
+
+DefaultAssay(retina.atac.no.na) <- 'ATAC'
+retina.atac.no.na <- AddMotifs(
+  object = retina.atac.no.na,
+  genome = BSgenome.Hsapiens.UCSC.hg38,
+  pfm = pfm)
+retina.atac.no.na <- RunChromVAR(
+  object = retina.atac.no.na,
+  genome = BSgenome.Hsapiens.UCSC.hg38)
+
+save(retina.atac.no.na, file="retina_trans_labels_annotated_na_removed_chromvar_12072022.RData")
+```
