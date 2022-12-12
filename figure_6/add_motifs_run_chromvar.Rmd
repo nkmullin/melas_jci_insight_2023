@@ -1,5 +1,5 @@
 ---
-title: "differential_motif"
+title: "add_motifs_run_chromvar"
 author: "Nate Mullin"
 date: "12/01/2022"
 output: html_document
