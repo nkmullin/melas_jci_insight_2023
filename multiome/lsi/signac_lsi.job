@@ -1,0 +1,29 @@
+#!/bin/sh
+
+#$ -N signac_lsi
+#$ -q IVR,CCOM,UI,INFORMATICS
+#$ -S /bin/bash
+#$ -pe smp 56
+#$ -l mf=2G
+#$ -cwd
+#$ -j y
+#$ -l cpu_arch=broadwell
+#$ -m be
+#$ -M nathaniel-mullin@uiowa.edu
+
+module load stack/legacy
+module load readline
+module load bzip2
+LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/Shared/IVR/apvoigt/programs/R-4.1.0/lib64/R/lib:/opt/apps/libiconv/1.15/lib
+module load libpng/1.6.28
+module load icu/58.2
+module load hdf5/1.8.18_gcc-5.4.0
+
+echo ${1}
+echo ${2}
+echo ${3}
+echo ${4}
+echo ${5}
+
+/Shared/IVR/apvoigt/programs/R-4.1.0/bin/Rscript /Shared/IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/jobs/signac_lsi.R \
+--args ${1} ${2} ${3} ${4} ${5}
