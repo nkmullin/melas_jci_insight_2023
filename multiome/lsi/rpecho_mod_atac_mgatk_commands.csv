@@ -1,0 +1,8 @@
+add_mgatk_data,output_path,sample_name,allele_of_interest,allele_1,allele_2
+FALSE,/Shared/IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/mgatk_12132022/20_009_rpechor_mgatk/final/,20_009_rpechor,3243,A,G
+FALSE,/Shared/IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/mgatk_12132022/21_016_rpechor_mgatk/final/,21_016_rpechor,3243,A,G
+FALSE,/Shared/IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/mgatk_12132022/21_016_rpeonly_mgatk/final/,21_016_rpeonly,3243,A,G
+FALSE,/Shared/IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/mgatk_12132022/21_028_rpeonly_mgatk/final/,21_028_rpeonly,3243,A,G
+FALSE,/Shared/IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/mgatk_12132022/S2_21_016_per_rpechor_mgatk/final/,S2_21_016_per_rpechor,3243,A,G
+FALSE,/Shared/IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/mgatk_12132022/S4_20_058_per_rpechor_mgatk/final/,S4_20_058_per_rpechor,3243,A,G
+FALSE,/Shared/IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/mgatk_12132022/S6_20_067_per_rpechor_mgatk/final/,S6_20_067_per_rpechor,3243,A,G
