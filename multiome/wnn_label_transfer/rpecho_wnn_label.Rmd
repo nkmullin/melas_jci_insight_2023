@@ -1,0 +1,193 @@
+---
+title: "melas_wnn_analysis"
+author: "Nate Mullin"
+date: "1/11/2023"
+output: html_document
+---
+
+```{r}
+library(Seurat)
+library(Signac)
+library(tidyverse)
+library(ggpubr)
+library(EnsDb.Hsapiens.v86)
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(ggrepel)
+library(RColorBrewer)
+library(scCustomize)
+```
+
+
+###########################################
+#### Run WNN to integrate RNA and ATAC ####
+###########################################
+```{r, fig.width=18, fig.height=6}
+# load CCA output
+load("~/LSS/IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/cca_stringent_rpecho_01122023/final_object.RData")
+# load LSI/Signac output
+load("~/LSS/IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/lsi_stringent_rpecho_01122023/integrated_final.RData")
+
+CCA_object <- IVR_object.combined
+LSI_object <- integrated
+
+# add correct fragment paths to atac object
+FRAG_PATH1 <- "~/LSS/IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/cellranger_arc_runs/20_009_rpechor/outs/atac_fragments.tsv.gz"
+FRAG_PATH2 <- "~/LSS/IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/cellranger_arc_runs/21_016_rpechor/outs/atac_fragments.tsv.gz"
+FRAG_PATH3 <- "~/LSS//IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/cellranger_arc_runs/21_016_rpeonly/outs/atac_fragments.tsv.gz"
+FRAG_PATH4 <- "~/LSS//IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/cellranger_arc_runs/21_028_rpeonly/outs/atac_fragments.tsv.gz"
+FRAG_PATH5 <- "~/LSS//IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/cellranger_arc_runs/S1_21_016_per_retina/outs/atac_fragments.tsv.gz"
+FRAG_PATH6 <- "~/LSS//IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/cellranger_arc_runs/S2_21_016_per_rpechor/outs/atac_fragments.tsv.gz"
+FRAG_PATH7 <- "~/LSS//IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/cellranger_arc_runs/S3_20_058_per_retina/outs/atac_fragments.tsv.gz"
+FRAG_PATH8 <- "~/LSS//IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/cellranger_arc_runs/S4_20_058_per_rpechor/outs/atac_fragments.tsv.gz"
+FRAG_PATH9 <- "~/LSS//IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/cellranger_arc_runs/S5_20_067_per_retina/outs/atac_fragments.tsv.gz"
+FRAG_PATH10 <- "~/LSS//IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/cellranger_arc_runs/S6_20_067_per_rpechor/outs/atac_fragments.tsv.gz"
+
+FRAG_PATHS <- c(FRAG_PATH1, FRAG_PATH2, FRAG_PATH3, FRAG_PATH4, 
+                FRAG_PATH6, FRAG_PATH8, FRAG_PATH10)
+NEW_FRAG_LIST <- vector(length = 7, mode = "list")
+for(i in 1:7){
+  
+  NEW_FRAG_LIST[[i]] <- UpdatePath(object = Fragments(LSI_object[["ATAC"]])[[i]],
+                                   new.path = FRAG_PATHS[i],
+                                   verbose = TRUE)
+}
+
+Fragments(LSI_object[["ATAC"]]) <- NULL
+Fragments(LSI_object[["ATAC"]]) <- NEW_FRAG_LIST
+
+annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86)
+seqlevelsStyle(annotations) <- 'UCSC'
+
+# add the gene information to the object
+Annotation(LSI_object) <- annotations
+genome(LSI_object) <- "hg38"
+
+# subset objects to only contain common cells that pass ATAC and RNA QC
+CCA_object_subset <- subset(CCA_object, cells = colnames(LSI_object))
+LSI_object_subset <- subset(LSI_object, cells = colnames(CCA_object_subset))
+
+# set default assay
+DefaultAssay(CCA_object_subset) <- "RNA"
+DefaultAssay(LSI_object_subset) <- "ATAC"
+
+
+# compare number of cells in each object
+CCA_object # 16k cells
+LSI_object # 19k cells
+CCA_object_subset # 7k  cells
+LSI_object_subset # 7k cells
+```
+
+Create new multimodal object out of subsets
+```{r}
+# create a new object with relevant assays
+multimodal_object <- CreateSeuratObject(counts =  CCA_object_subset@assays$RNA@counts,assay = "RNA")
+multimodal_object[["integrated"]] <- CCA_object_subset@assays$integrated
+multimodal_object[["ATAC"]] <- LSI_object_subset[["ATAC"]]
+
+# and metadata
+multimodal_object@meta.data <- LSI_object_subset@meta.data
+multimodal_object[["mito.genes"]] <- CCA_object_subset$mito.genes
+multimodal_object[["ribo.genes"]] <- CCA_object_subset$ribo.genes
+multimodal_object[["dataset"]] <- LSI_object_subset$dataset
+
+# and reductions
+multimodal_object@reductions$integrated_pca <- CCA_object_subset@reductions$pca
+multimodal_object@reductions$integrated_umap <- CCA_object_subset@reductions$umap
+multimodal_object@reductions$integrated_lsi <- LSI_object_subset@reductions$integrated_lsi
+multimodal_object@reductions$lsi_umap <- LSI_object_subset@reductions$umap
+
+# add scaled data
+all.genes <- rownames(multimodal_object)
+multimodal_object <- ScaleData(multimodal_object, features = all.genes, assay = "RNA")
+
+DefaultAssay(multimodal_object) <- "ATAC"
+all.peaks <- rownames(multimodal_object)
+multimodal_object <- ScaleData(multimodal_object, features = all.peaks, assay = "ATAC")
+multimodal_object <- NormalizeData(multimodal_object, assay = "RNA")
+
+# add the gene activity matrix to the Seurat object as a new assay and normalize it
+#gene.activities <- GeneActivity(multimodal_object, assay = "ATAC")
+#multimodal_object[['gene_activity']] <- CreateAssayObject(counts = gene.activities)
+#multimodal_object <- NormalizeData(
+#  object = multimodal_object,
+#  assay = 'gene_activity',
+#  normalization.method = 'LogNormalize',
+#  scale.factor = median(multimodal_object$nCount_gene_activity)
+#)
+#
+#DefaultAssay(multimodal_object) <- "gene_activity"
+#all.ga <- rownames(multimodal_object)
+#multimodal_object <- ScaleData(multimodal_object, features = all.ga, assay = "gene_activity")
+
+# run WNN using reductions from RNA and ATAC
+multimodal_object <- FindMultiModalNeighbors(multimodal_object, 
+                                             reduction.list = list("integrated_pca",
+                                                                   "integrated_lsi"), 
+                                             dims.list = list(1:30, 2:50))
+
+# Run UMAP and find clusters in multimodal data
+multimodal_object <- RunUMAP(multimodal_object, nn.name = "weighted.nn", reduction.name = "wnn.umap", reduction.key = "wnnUMAP_")
+multimodal_object <- FindClusters(multimodal_object, graph.name = "wsnn", algorithm = 3, verbose = FALSE, resolution = 0.5)
+
+DimPlot(multimodal_object, reduction = "wnn.umap", pt.size = 0.1)
+```
+
+##################################################
+############## ANNOTATION OF OBJECT ##############
+##################################################
+```{r}
+# add  annotations
+disease <- ifelse(
+  str_detect(
+    multimodal_object[["dataset"]][["dataset"]], "21_016"
+    ), "MELAS", "Control")
+
+multimodal_object[["disease"]] <- disease
+```
+
+
+```{r}
+save(multimodal_object, file = "multimodal_object_stringent_rpecho.RData")
+```
+
+
+NOW ANNOTATE CELL TYPE USING RNA DATA
+
+###########################
+#### Reference Mapping ####
+###########################
+
+```{r}
+# load annotated PNAS rpe/choroid data
+load("~/LSS/IVR/nkmullin/experiments/sc-rna-seq/melas_jci_insight_revision/celltype_annotation_of_rna/rpechor_pnas_controls_annotated_11012022.RData")
+
+DefaultAssay(IVR_object.combined) <- "RNA"
+DefaultAssay(multimodal_object) <- "RNA"
+
+common.features <- intersect(rownames(multimodal_object), rownames(IVR_object.combined))
+length(x = common.features)
+
+anchors <- FindTransferAnchors(reference = IVR_object.combined, query = multimodal_object,
+    dims = 1:30, reference.reduction = "pca", features = common.features, reduction = "pcaproject")
+
+predictions <- TransferData(anchorset = anchors, refdata = IVR_object.combined$celltype,
+    dims = 1:30)
+
+
+multimodal_object <- AddMetaData(multimodal_object, metadata = predictions)
+Idents(multimodal_object) <- 'predicted.id'
+# 
+# pdf("rpecho_pred_scor_02022023.pdf", width=5, height=5)
+# FeaturePlot(multimodal_object, features =  "prediction.score.max", reduction = "wnn.umap", pt.size = 0.01, order = F)
+# dev.off()
+
+# set really low prediction score cutoff ie zero!
+multimodal_object$draft_celltype <- ifelse(multimodal_object$prediction.score.max > 0.5, multimodal_object$predicted.id, NA)
+
+
+
+Idents(multimodal_object) <- 'draft_celltype'
+
+save(multimodal_object, file = "multimodal_object_stringent_rpecho_draft_annotation.RData")
+```
