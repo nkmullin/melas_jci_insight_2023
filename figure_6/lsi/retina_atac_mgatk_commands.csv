@@ -1,0 +1,4 @@
+add_mgatk_data,output_path,sample_name,allele_of_interest,allele_1,allele_2
+TRUE,/Shared/IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/mgatk_12132022/S1_21_016_per_retina_mgatk/final/,S1_21_016_per_retina,3243,A,G
+TRUE,/Shared/IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/mgatk_12132022/S3_20_058_per_retina_mgatk/final/,S3_20_058_per_retina,3243,A,G
+TRUE,/Shared/IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/mgatk_12132022/S5_20_067_per_retina_mgatk/final/,S5_20_067_per_retina,3243,A,G
