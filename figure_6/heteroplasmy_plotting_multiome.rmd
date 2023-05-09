@@ -1,0 +1,235 @@
+---
+title: "heteroplasmy_plotting_06182021_nkm"
+author: "Nate Mullin"
+date: "01/13/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(Signac)
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(tidyverse)
+library(EnsDb.Hsapiens.v86)
+library(Matrix)
+library(SummarizedExperiment)
+library(ggpubr)
+library("RColorBrewer")
+library(ggplot2)
+library(dplyr)
+library("hrbrthemes") # NOTE: CRAN version is 0.8.0
+```
+
+import objects of interest.
+```{r}
+
+#rpe/choroid
+load("~/LSS/IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/seurat_downstream/wnn_analysis/multiome_stringent_rpecho_wnn_02022023/multimodal_object_stringent_rpecho_01132023_draft_annotation.RData")
+rpecho_multimodal_object <- multimodal_object
+
+#retina
+load("~/LSS/IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/seurat_downstream/wnn_analysis/multiome_retina_wnn_02022023/multimodal_object_retina_02052023_draft_annotation.RData")
+retina_multimodal_object <- multimodal_object
+
+```
+
+
+filter cells based on m.3243 coverage and subset to only include MELAS patient (21-016)
+```{r}
+# retina
+# subset patinet sample
+melas.retina.multiome <- subset(retina_multimodal_object, disease == "MELAS")
+melas.retina.multiom <- subset(melas.retina.multiome, draft_celltype != "NA")
+melas.retina.multiome <- subset(melas.retina.multiome, cov3243 != "NA")
+
+# create upper bound for m.3243 coverage
+retina.q99 <- quantile(melas.retina.multiome$cov3243,.99)
+
+# subset on m.3243 coverage
+subset.melas.retina.multiome <- subset(subset(melas.retina.multiome, cov3243 >= 5), cov3243 <= retina.q99)
+subset.melas.retina.multiome
+
+# rpe/choroid
+# subset patinet sample
+melas.rpecho.multiome <- subset(rpecho_multimodal_object, disease == "MELAS")
+melas.rpecho.multiome <- subset(melas.rpecho.multiome, draft_celltype != "NA")
+melas.rpecho.multiome <- subset(melas.rpecho.multiome, cov3243 != "NA")
+
+# create upper bound for m.3243 coverage
+rpechor.q99 <- quantile(melas.rpecho.multiome$cov3243,0.99)
+
+# subset on m.3243 coverage
+subset.melas.rpecho.multiome <- subset(subset(melas.rpecho.multiome, cov3243 >= 5), cov3243 <= rpechor.q99)
+
+melas.retina.multiome # 5,124 cells
+subset.melas.retina.multiome #486 cells
+
+melas.rpecho.multiome # 1,202 cells
+subset.melas.rpecho.multiome # 740 cells
+
+
+save(subset.melas.retina.multiome, file = "subset.melas.retina.multiome.RData")
+save(subset.melas.rpecho.multiome, file = "subset.melas.rpecho.multiome.RData")
+```
+
+
+plot heteroplasmy, mtDNA coverage, and mtDNA copy number proxy per cell type
+```{r fig.width=16, fig.height=12}
+hetPlot<- VlnPlot(object = subset.melas.rpecho.multiome,
+                  split.by = "disease",
+                  features = "het3243A_G",
+                  pt.size = 0.5) + labs(title = "m.3243A>G Heteroplasmy") 
+mtDNACovPlot<- VlnPlot(object = subset.melas.rpecho.multiome,
+                  features = "mtDNA_depth",
+                  split.by = "disease",
+                  pt.size = 0.5) + labs(title = "mtDNA Coverage")
+mtDNACNPlot<- VlnPlot(object = subset.melas.rpecho.multiome,
+                      split.by = "disease",
+                  features = "mitochondrial_ratio",
+                  pt.size = 0.5) + labs(title = "Percent mtDNA Reads of Total\n (mtDNA Copy Number Proxy)")
+
+pdf(file = "rpe_chor_vln_plots_heteroplasmy.pdf",   # The directory you want to save the file in
+    width = 8, # The width of the plot in inches
+    height = 12) # The height of the plot in inches
+
+ggarrange(hetPlot, mtDNACovPlot, mtDNACNPlot,
+          ncol = 1,
+          nrow = 3,
+          labels = c("A","B","C"),
+          common.legend = TRUE,
+          legend = 'bottom')
+dev.off()
+
+hetPlot<- VlnPlot(object = subset.melas.retina.multiome,
+                  split.by = "disease",
+                  features = "het3243A_G",
+                  pt.size = 0.5) + labs(title = "m.3243A>G Heteroplasmy") 
+mtDNACovPlot<- VlnPlot(object = subset.melas.retina.multiome,
+                  features = "mtDNA_depth",
+                  split.by = "disease",
+                  pt.size = 0.5) + labs(title = "mtDNA Coverage")
+mtDNACNPlot<- VlnPlot(object = subset.melas.retina.multiome,
+                      split.by = "disease",
+                  features = "mitochondrial_ratio",
+                  pt.size = 0.5) + labs(title = "Percent mtDNA Reads of Total\n (mtDNA Copy Number Proxy)")
+
+pdf(file = "retina_vln_plots_heteroplasmy.pdf",   # The directory you want to save the file in
+    width = 8, # The width of the plot in inches
+    height = 12) # The height of the plot in inches
+
+ggarrange(hetPlot, mtDNACovPlot, mtDNACNPlot,
+          ncol = 1,
+          nrow = 3,
+          labels = c("A","B","C"),
+          common.legend = TRUE,
+          legend = 'bottom')
+dev.off()
+
+
+```
+
+featureplot of MELAS vs Ctl with coloring on heteroplasmy
+```{r fig.width=8, fig.height=8}
+cluster_plot <- DimPlot(
+  object = subset.melas.rpecho.multiome, reduction = "wnn.umap",
+  order = FALSE,
+  ncol = 1,
+  pt.size = 0.05,
+  label = TRUE, 
+  repel = TRUE
+) + NoLegend()
+
+sample_plot <- DimPlot(object = subset.melas.rpecho.multiome, reduction = "wnn.umap",
+                         group.by = "disease",
+                        order = TRUE,
+                        ncol = 1,
+                        pt.size = 0.05,
+                        label = FALSE, 
+                        repel = TRUE
+                        ) + NoLegend()
+
+heteroplasmy_plot <- FeaturePlot(
+  object = subset(subset.melas.rpecho.multiome), reduction = "wnn.umap",
+  features = "het3243A_G",
+  order = FALSE,
+  ncol = 1,
+  pt.size = 0.05,
+  label = FALSE, 
+  repel = TRUE, 
+  cols = c("blue","red"), 
+  split.by = "disease",
+  keep.scale = "all"
+) + NoLegend()
+
+pdf(file = "ret_dim_plots_heteroplasmy_081421.pdf",   # The directory you want to save the file in
+    width = 8, # The width of the plot in inches
+    height = 8) # The height of the plot in inches
+
+ggarrange(cluster_plot, sample_plot, heteroplasmy_plot)
+          
+dev.off()
+
+```
+
+ # feature plots
+```{r}
+retina_heteroplasmy_plot <- FeaturePlot(
+  object = subset.melas.retina.multiome,  reduction = "wnn.umap",
+  features = "het3243A_G",
+  order = FALSE,
+  ncol = 1,
+  pt.size = 0.1,
+  label = T, 
+  repel = TRUE) + NoLegend() +scale_colour_gradientn(colours = rev(brewer.pal(n = 8, name = "RdBu"))) + ggtitle(label = "Neural Retina")
+
+rpechor_heteroplasmy_plot <- FeaturePlot(
+  object = subset.melas.rpecho.multiome, reduction = "wnn.umap",
+  features = "het3243A_G",
+  order = FALSE,
+  ncol = 1,
+  pt.size = 0.1,
+  label = T, 
+  repel = TRUE) + NoLegend() +scale_colour_gradientn(colours = rev(brewer.pal(n = 8, name = "RdBu"))) + ggtitle(label = "RPE/Choroid")
+
+
+pdf(file = "heteroplasmy_feat_plots.pdf",   # The directory you want to save the file in
+    width = 8, # The width of the plot in inches
+    height = 4) # The height of the plot in inches
+
+ggarrange(retina_heteroplasmy_plot, rpechor_heteroplasmy_plot,
+          ncol = 2,
+          nrow = 1,
+          labels = c("B","C"),
+          common.legend = TRUE,
+          legend = 'right')
+dev.off()
+
+
+```
+
+vln plots 
+```{r}
+retina.hetPlot<- VlnPlot(object = subset.melas.retina.atac,
+                  features = "het3243A_G",
+                  pt.size = 0.5, sort = T) + NoLegend() + ylab(label = "proportion m.3243G")+ xlab(label = "") + ggtitle("")
+
+rpechor.hetPlot<- VlnPlot(object = subset.melas.rpechor.atac,
+                  features = "het3243A_G",
+                  pt.size = 0.5, sort = T)  + NoLegend()  + ylab(label = "proportion m.3243G") + xlab(label = "") + ggtitle("")
+
+
+pdf(file = "heteroplasmy_vln_plots.pdf",   # The directory you want to save the file in
+    width = 8, # The width of the plot in inches
+    height = 8) # The height of the plot in inches
+
+ggarrange(retina.hetPlot, rpechor.hetPlot,
+          ncol = 1,
+          nrow = 2,
+          labels = c("D","E"))
+dev.off()
+
+
+```
+
