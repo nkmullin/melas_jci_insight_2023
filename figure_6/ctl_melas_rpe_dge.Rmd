@@ -1,0 +1,156 @@
+---
+title: "dge_multiome"
+author: "Nate Mullin"
+date: "02/01/2023"
+output: html_document
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(Signac)
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(tidyverse)
+library(EnsDb.Hsapiens.v86)
+library(Matrix)
+library(SummarizedExperiment)
+library(ggpubr)
+#library(JASPAR2020)
+#library(TFBSTools)
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(patchwork)
+library(EnhancedVolcano)
+library(scCustomize)
+set.seed(1234)
+```
+
+```{r}
+load("~/LSS/IVR/nkmullin/experiments/multiome/melas_jci_insight_revision/seurat_downstream/wnn_analysis/multiome_stringent_rpecho_wnn_02022023/multimodal_object_stringent_rpecho_01132023_draft_annotation.RData")
+
+# remove NA
+multimodal_object <- subset(multimodal_object, draft_celltype != "NA")
+```
+
+
+```{r}
+DimPlot(multimodal_object, reduction = "wnn.umap", split.by =  "dataset")
+table(multimodal_object$disease, multimodal_object$draft_celltype)
+```
+
+```{r}
+
+DimPlot(subset(multimodal_object, draft_celltype == "RPE"),
+        split.by = "disease", reduction = "integrated_umap")
+
+
+DefaultAssay(multimodal_object) <- "RNA"
+
+pdf(file = "rpe_gene_vln_multiome.pdf", width = 8, height = 15)
+VlnPlot_scCustom(seurat_object = subset(multimodal_object, draft_celltype == "RPE"),
+                 group.by = "disease", num_columns = 2,
+                 features = c("LRAT", "RLBP1", "BEST1", "RPE65", "ATP10B", "EZN"))
+dev.off()
+
+
+VlnPlot_scCustom(seurat_object = subset(multimodal_object, draft_celltype == "RPE"),
+                 group.by = "disease",
+                 features = c("HMGCS2"))
+
+FeaturePlot_scCustom(seurat_object = multimodal_object,features = "HMGCS2", 
+                     reduction = "wnn.umap", split.by = "disease", pt.size = 0.01)
+```
+
+
+
+```{r}
+Idents(multimodal_object) <- "draft_celltype"
+rpe_dge <- FindMarkers(object = multimodal_object,
+                       assay = "RNA",
+                       logfc.threshold = 0, min.pct = 0,
+                       ident.1 = "MELAS", ident.2 = "Control",
+                       subset.ident = "RPE", group.by = "disease",verbose = T, )
+
+rpe_dge$gene <- rownames(rpe_dge)
+rpe_dge$delta.pct <- rpe_dge$pct.1-rpe_dge$pct.2
+
+write.csv(x = rpe_dge, file = "rpe_dge_melas_vs_control.csv")
+```
+
+Plot
+```{r}
+RPE_dpct_fc <- ggplot(rpe_dge, aes(delta.pct, avg_log2FC))  +
+  geom_point(color = "#878787", alpha=I(0.2)) +
+  geom_point(data=subset(rpe_dge, delta.pct > 0.1 & avg_log2FC > 0.5),
+             aes(delta.pct,avg_log2FC,label = gene), color = "#b2182b") + 
+  geom_point(data=subset(rpe_dge, delta.pct < -0.1 & avg_log2FC < -0.5),
+             aes(delta.pct,avg_log2FC,label = gene), color  = "#2166ac") + 
+  geom_text_repel(data=subset(rpe_dge, delta.pct > 0.1 & avg_log2FC > 0.5), max.overlaps = 20,
+                  aes(delta.pct,avg_log2FC,label = gene)) + 
+    geom_text_repel(data=subset(rpe_dge, delta.pct < -0.1 & avg_log2FC < -0.5), max.overlaps = 20,
+                  aes(delta.pct,avg_log2FC,label = gene)) + 
+  labs(x = "∆ Percent Expressed", y = "Log2 Fold Change", title = "RPE") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+chol_genes <- c("CYP51A1", 
+                "FDFT1", 
+                "HMGCR", 
+                "HMGCS1",
+                "HMGCS2",
+                "IDI1",
+                "MSMO1",
+                "SQLE")
+
+pdf(file = "rpe_dge_volcano_cholesterol.pdf", width = 10, height = 10)
+ EnhancedVolcano(rpe_dge,
+    lab = rpe_dge$gene,
+    x = 'avg_log2FC',
+    y = 'p_val_adj',
+    pCutoff = 10e-5,
+    FCcutoff = 1,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 1.0,
+    col=c('black', 'black', 'black', 'red3'),
+    labSize = 6.0, selectLab = chol_genes,
+    colAlpha = 0.5,legendPosition = 'none')
+ dev.off()
+ 
+ 
+pdf(file = "rpe_dge_volcano.pdf", width = 10, height = 10)
+ EnhancedVolcano(rpe_dge,
+    lab = rpe_dge$gene, 
+    x = 'avg_log2FC',
+    y = 'p_val_adj',
+    pCutoff = 10e-5,
+    FCcutoff = 1,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 1.0,
+    col=c('black', 'black', 'black', 'red3'),drawConnectors = TRUE,
+    labSize = 6.0,
+    colAlpha = 0.5,legendPosition = 'none')
+ dev.off()
+```
+t
+```{r}
+DimPlot(multimodal_object, reduction = "wnn.umap", split.by = 'disease')
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+macrophage_dge <- FindMarkers(object = multimodal_object,assay = "integrated",logfc.threshold = 0, min.pct = 0, min.diff.pct = 0, ident.1 = "MELAS", ident.2 = "control", subset.ident = "RPE", group.by = "disease",verbose = T, )
+```
+
