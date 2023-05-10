@@ -40,17 +40,17 @@ setwd("~/LSS/IVR/nkmullin/experiments/sc-atac-seq/melas_jci_insight_revision/seu
 Get the paths to fragment files for objects.
 ```{r}
 # get paths for rpe/choroid
-FRAG_PATH1 <- "~/LSS/IVR/nkmullin/experiments/sc-atac-seq/cell_ranger_runs/MELAS_masked_ref/S3_21_016_mac_rpe_chor/outs/fragments.tsv.gz"
-FRAG_PATH2 <- "~/LSS/IVR/nkmullin/experiments/sc-atac-seq/cell_ranger_runs/MELAS_masked_ref/S4_21_016_per_rpe_chor/outs/fragments.tsv.gz"
-FRAG_PATH3 <- "~/LSS/IVR/nkmullin/experiments/sc-atac-seq/cell_ranger_runs/MELAS_masked_ref/S7_20_034_mac_rpe_chor/outs/fragments.tsv.gz"
-FRAG_PATH4 <- "~/LSS/IVR/nkmullin/experiments/sc-atac-seq/cell_ranger_runs/MELAS_masked_ref/S8_20_034_per_rpe_chor/outs/fragments.tsv.gz"
+FRAG_PATH1 <- "PATH/TO/FRAGS/outs/fragments.tsv.gz"
+FRAG_PATH2 <- "PATH/TO/FRAGS/outs/fragments.tsv.gz"
+FRAG_PATH3 <- "PATH/TO/FRAGS/outs/fragments.tsv.gz"
+FRAG_PATH4 <- "PATH/TO/FRAGS/outs/fragments.tsv.gz"
 
 # get paths for retina
-FRAG_PATH5 <- "~/LSS/IVR/nkmullin/experiments/sc-atac-seq/cell_ranger_runs/MELAS_masked_ref/S1_21_016_mac_ret/outs/fragments.tsv.gz"
-FRAG_PATH6 <- "~/LSS/IVR/nkmullin/experiments/sc-atac-seq/cell_ranger_runs/MELAS_masked_ref/S2_21_016_per_ret/outs/fragments.tsv.gz"
-FRAG_PATH7 <- "~/LSS/IVR/nkmullin/experiments/sc-atac-seq/cell_ranger_runs/MELAS_masked_ref/S5_20_034_mac_ret/outs/fragments.tsv.gz"
-FRAG_PATH8 <- "~/LSS/IVR/nkmullin/experiments/sc-atac-seq/cell_ranger_runs/MELAS_masked_ref/S6_20_034_per_ret/outs/fragments.tsv.gz"
-FRAG_PATH9 <- "~/LSS/IVR/nkmullin/experiments/sc-atac-seq/cell_ranger_runs/MELAS_masked_ref/S9_20_032_mac_ret/outs/fragments.tsv.gz"
+FRAG_PATH5 <- "PATH/TO/FRAGS/outs/fragments.tsv.gz"
+FRAG_PATH6 <- "PATH/TO/FRAGS/outs/fragments.tsv.gz"
+FRAG_PATH7 <- "PATH/TO/FRAGS/outs/fragments.tsv.gz"
+FRAG_PATH8 <- "PATH/TO/FRAGS/outs/fragments.tsv.gz"
+FRAG_PATH9 <- "PATH/TO/FRAGS/outs/fragments.tsv.gz"
 
 
 FRAG_PATHS <- c(FRAG_PATH1, FRAG_PATH2, FRAG_PATH3, FRAG_PATH4)
